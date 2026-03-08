@@ -1,5 +1,5 @@
 import os
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for, session, flash
 import mysql.connector
 from datetime import datetime, timedelta
 import cloudinary
@@ -7,6 +7,14 @@ import cloudinary.uploader
 
 app = Flask(__name__)
 app.secret_key = "super_secreto_bodega"
+
+# Hacemos que la sesión dure 30 días para no hartar a los choferes
+app.permanent_session_lifetime = timedelta(days=30)
+
+# ==========================================
+# CONFIGURACIÓN DE SEGURIDAD (PIN MAESTRO)
+# ==========================================
+PIN_ACCESO = "2026" # <-- Aquí pones el NIP que tú quieras
 
 # ==========================================
 # CONFIGURACIÓN DE CLOUDINARY (FOTOS EN LA NUBE)
@@ -31,6 +39,40 @@ DB_CONFIG = {
 
 def obtener_conexion():
     return mysql.connector.connect(**DB_CONFIG)
+
+# ==========================================
+# BARRERA DE SEGURIDAD (CANDADO)
+# ==========================================
+@app.before_request
+def verificar_login():
+    # Rutas que dejamos pasar sin pedir contraseña
+    rutas_permitidas = ['login', 'static']
+    
+    # Si intentan entrar a cualquier otra parte y no están logeados, los mandamos al Login
+    if request.endpoint not in rutas_permitidas and not session.get('logeado'):
+        return redirect(url_for('login'))
+
+# ==========================================
+# RUTAS DE LA APLICACIÓN
+# ==========================================
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        pin_ingresado = request.form.get('pin')
+        if pin_ingresado == PIN_ACCESO:
+            session.permanent = True
+            session['logeado'] = True
+            return redirect(url_for('index'))
+        else:
+            flash("PIN incorrecto. Intenta de nuevo.", "danger")
+            
+    return render_template('login.html')
+
+@app.route('/logout')
+def logout():
+    session.pop('logeado', None)
+    return redirect(url_for('login'))
 
 @app.route('/')
 def index():
@@ -85,20 +127,15 @@ def procesar_salida():
     unidad_num, unidad_nombre = datos_unidad.split('|')
     unidad_chofer = request.form.get('chofer')
     
-    # ==========================================
-    # NUEVA LÓGICA: MÚLTIPLES FOTOS A CLOUDINARY
-    # ==========================================
     campos_fotos = ['evidencia', 'evidencia2', 'evidencia3', 'evidencia4']
     urls_subidas = []
 
     for campo in campos_fotos:
         foto = request.files.get(campo)
-        # Si el chofer subió una foto en este campo, la enviamos a la nube
         if foto and foto.filename != '':
             respuesta_nube = cloudinary.uploader.upload(foto)
             urls_subidas.append(respuesta_nube.get("secure_url"))
 
-    # Unimos todas las URLs generadas con un Pipe y salto de línea
     ruta_foto_final = "|\n".join(urls_subidas) if urls_subidas else ""
 
     ahora = datetime.now()
