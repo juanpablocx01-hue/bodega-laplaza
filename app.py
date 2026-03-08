@@ -2,8 +2,6 @@ import os
 from flask import Flask, render_template, request, redirect, url_for
 import mysql.connector
 from datetime import datetime, timedelta
-
-# NUEVAS IMPORTACIONES PARA LA NUBE
 import cloudinary
 import cloudinary.uploader
 
@@ -13,7 +11,6 @@ app.secret_key = "super_secreto_bodega"
 # ==========================================
 # CONFIGURACIÓN DE CLOUDINARY (FOTOS EN LA NUBE)
 # ==========================================
-# Reemplaza estos datos con los de tu panel de Cloudinary
 cloudinary.config(
   cloud_name = "dxkrhdljz",
   api_key = "634847558949229",
@@ -89,15 +86,20 @@ def procesar_salida():
     unidad_chofer = request.form.get('chofer')
     
     # ==========================================
-    # NUEVA LÓGICA: SUBIR FOTO A CLOUDINARY
+    # NUEVA LÓGICA: MÚLTIPLES FOTOS A CLOUDINARY
     # ==========================================
-    foto = request.files.get('evidencia')
-    ruta_foto = ""
-    if foto and foto.filename != '':
-        # Esto manda la foto a internet automáticamente
-        respuesta_nube = cloudinary.uploader.upload(foto)
-        # Aquí obtenemos el link seguro (https://...) que nos regresa Cloudinary
-        ruta_foto = respuesta_nube.get("secure_url")
+    campos_fotos = ['evidencia', 'evidencia2', 'evidencia3', 'evidencia4']
+    urls_subidas = []
+
+    for campo in campos_fotos:
+        foto = request.files.get(campo)
+        # Si el chofer subió una foto en este campo, la enviamos a la nube
+        if foto and foto.filename != '':
+            respuesta_nube = cloudinary.uploader.upload(foto)
+            urls_subidas.append(respuesta_nube.get("secure_url"))
+
+    # Unimos todas las URLs generadas con un Pipe y salto de línea
+    ruta_foto_final = "|\n".join(urls_subidas) if urls_subidas else ""
 
     ahora = datetime.now()
     hora_salida_str = ahora.strftime('%H:%M:%S')
@@ -177,7 +179,7 @@ def procesar_salida():
         WHERE num_viaje = %s
     """
     cursor.execute(consulta_update, (
-        nuevo_estatus_original, ruta_foto, hora_salida_str, hora_regreso_str, 
+        nuevo_estatus_original, ruta_foto_final, hora_salida_str, hora_regreso_str, 
         unidad_num, unidad_nombre, unidad_chofer, 
         texto_cargados, texto_historico, num_viaje
     ))
