@@ -1,7 +1,7 @@
 import os
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 import mysql.connector
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from zoneinfo import ZoneInfo
 import cloudinary
 import cloudinary.uploader
@@ -10,7 +10,6 @@ import requests
 app = Flask(__name__)
 app.secret_key = "super_secreto_bodega"
 
-# Hacemos que la sesión dure 30 días para no hartar a los choferes
 app.permanent_session_lifetime = timedelta(days=30)
 
 # ==========================================
@@ -19,7 +18,7 @@ app.permanent_session_lifetime = timedelta(days=30)
 PIN_ACCESO = "2026" 
 
 # ==========================================
-# CONFIGURACIÓN DE CLOUDINARY (FOTOS EN LA NUBE)
+# CONFIGURACIÓN DE CLOUDINARY
 # ==========================================
 cloudinary.config(
   cloud_name = "dxkrhdljz",
@@ -42,8 +41,35 @@ DB_CONFIG = {
 def obtener_conexion():
     return mysql.connector.connect(**DB_CONFIG)
 
+def calcular_minutos(rem_hora):
+    """
+    rem_hora puede venir como timedelta o como time desde MySQL.
+    Calculamos los minutos transcurridos desde esa hora hasta ahora.
+    """
+    try:
+        ahora = datetime.now(ZoneInfo("America/Mexico_City")).replace(tzinfo=None)
+        hoy = ahora.date()
+
+        # Si es timedelta (como lo devuelve mysql.connector para TIME)
+        if isinstance(rem_hora, timedelta):
+            segundos = int(rem_hora.total_seconds())
+            horas = segundos // 3600
+            minutos_part = (segundos % 3600) // 60
+            hora_registro = datetime.combine(hoy, datetime.min.time().replace(hour=horas % 24, minute=minutos_part))
+        # Si es datetime
+        elif isinstance(rem_hora, datetime):
+            hora_registro = rem_hora
+        else:
+            return 0
+
+        diferencia = ahora - hora_registro
+        minutos = int(diferencia.total_seconds() / 60)
+        return max(0, minutos)
+    except Exception:
+        return 0
+
 # ==========================================
-# BARRERA DE SEGURIDAD (CANDADO)
+# BARRERA DE SEGURIDAD
 # ==========================================
 @app.before_request
 def verificar_login():
@@ -52,7 +78,7 @@ def verificar_login():
         return redirect(url_for('login'))
 
 # ==========================================
-# RUTAS DE LA APLICACIÓN
+# RUTAS
 # ==========================================
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -65,7 +91,6 @@ def login():
             return redirect(url_for('index'))
         else:
             flash("PIN incorrecto. Intenta de nuevo.", "danger")
-            
     return render_template('login.html')
 
 @app.route('/logout')
@@ -83,6 +108,18 @@ def index():
     
     cursor.close()
     conexion.close()
+
+    # Calcular minutos y semáforo en Python
+    for pedido in pedidos:
+        minutos = calcular_minutos(pedido.get('rem_hora'))
+        pedido['minutos_transcurridos'] = minutos
+        if minutos <= 39:
+            pedido['semaforo'] = 'verde'
+        elif minutos <= 80:
+            pedido['semaforo'] = 'amarillo'
+        else:
+            pedido['semaforo'] = 'rojo'
+
     return render_template('index.html', pedidos=pedidos)
 
 @app.route('/pedido/<int:num_viaje>')
@@ -102,13 +139,11 @@ def detalle_pedido(num_viaje):
     productos_lista = []
     if pedido and pedido['rem_productos']:
         texto_productos = pedido['rem_productos']
-        
         if '|' in texto_productos:
             productos_brutos = texto_productos.split('|')
         else:
             texto_temp = texto_productos.replace('\n', ',').replace('\r', ',')
             productos_brutos = texto_temp.split(',')
-            
         productos_lista = [prod.strip() for prod in productos_brutos if prod.strip()]
 
     cursor.close()
@@ -137,7 +172,6 @@ def procesar_salida():
 
     ruta_foto_final = "|\n".join(urls_subidas) if urls_subidas else ""
 
-    # Hora correcta en zona horaria de México
     ahora = datetime.now(ZoneInfo("America/Mexico_City"))
     hora_salida_str = ahora.strftime('%H:%M:%S')
     hora_salida_webhook = ahora.strftime('%H:%M')
@@ -235,7 +269,6 @@ def procesar_salida():
     if letra == 'A':
         telefono_sucursal = "7544740046"
     else:
-        # Serie B, C o cualquier otra
         telefono_sucursal = "7544741035"
 
     # ==========================================
@@ -264,4 +297,3 @@ def procesar_salida():
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
-
