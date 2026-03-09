@@ -11,18 +11,9 @@
             max-height: 40px;
             width: auto;
         }
-        .semaforo-verde {
-            border-top: 6px solid #28a745 !important;
-            border-left: 4px solid #0d6efd !important;
-        }
-        .semaforo-amarillo {
-            border-top: 6px solid #ffc107 !important;
-            border-left: 4px solid #0d6efd !important;
-        }
-        .semaforo-rojo {
-            border-top: 6px solid #dc3545 !important;
-            border-left: 4px solid #0d6efd !important;
-        }
+        .borde-verde  { border-top: 6px solid #28a745 !important; border-left: 4px solid #0d6efd !important; }
+        .borde-amarillo { border-top: 6px solid #ffc107 !important; border-left: 4px solid #0d6efd !important; }
+        .borde-rojo   { border-top: 6px solid #dc3545 !important; border-left: 4px solid #0d6efd !important; }
     </style>
 </head>
 <body class="bg-light">
@@ -40,18 +31,15 @@
         <div class="list-group">
             {% for pedido in pedidos %}
 
-            {% set ahora = now() %}
-            {% set minutos = ((ahora - pedido.rem_hora).total_seconds() / 60) | int %}
-
-            {% if minutos <= 39 %}
-                {% set clase_semaforo = 'semaforo-verde' %}
-            {% elif minutos <= 80 %}
-                {% set clase_semaforo = 'semaforo-amarillo' %}
+            {% if pedido.semaforo == 'verde' %}
+                {% set clase_borde = 'borde-verde' %}
+            {% elif pedido.semaforo == 'amarillo' %}
+                {% set clase_borde = 'borde-amarillo' %}
             {% else %}
-                {% set clase_semaforo = 'semaforo-rojo' %}
+                {% set clase_borde = 'borde-rojo' %}
             {% endif %}
 
-            <a href="{{ url_for('detalle_pedido', num_viaje=pedido.num_viaje) }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center shadow-sm mb-2 rounded p-3 border-start border-primary border-4 {{ clase_semaforo }}">
+            <a href="{{ url_for('detalle_pedido', num_viaje=pedido.num_viaje) }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center shadow-sm mb-2 rounded p-3 {{ clase_borde }}">
                 <div>
                     <h5 class="mb-1 text-primary">Viaje #{{ pedido.num_viaje }}</h5>
                     <p class="mb-1 text-dark">Remisión: <strong>{{ pedido.rem_serie }}{{ pedido.rem_num }}</strong></p>
@@ -64,6 +52,7 @@
                     <span class="badge bg-info text-white rounded-pill px-3 py-2 text-uppercase">{{ pedido.rem_estatus }}</span>
                 {% endif %}
             </a>
+
             {% else %}
             <div class="alert alert-success text-center mt-5 shadow" role="alert">
                 <h4 class="alert-heading">¡SIN PEDIDOS PENDIENTES!</h4>
