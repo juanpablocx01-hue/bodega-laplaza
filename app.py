@@ -144,7 +144,7 @@ def procesar_salida():
     conexion = obtener_conexion()
     
     cursor_lectura = conexion.cursor(dictionary=True)
-    cursor_lectura.execute("SELECT rem_productos, rem_productos_originales, cliente_nombre, cli_telefono FROM tblEntregasResp2 WHERE num_viaje = %s", (num_viaje,))
+    cursor_lectura.execute("SELECT rem_productos, rem_productos_originales, cliente_nombre, cli_telefono, rem_serie FROM tblEntregasResp2 WHERE num_viaje = %s", (num_viaje,))
     viaje_original = cursor_lectura.fetchone()
     cursor_lectura.close()
 
@@ -224,6 +224,18 @@ def procesar_salida():
     conexion.close()
 
     # ==========================================
+    # DETERMINAR TELÉFONO DE SUCURSAL SEGÚN SERIE
+    # ==========================================
+    serie = viaje_original.get('rem_serie', '')
+    letra = serie[0].upper() if serie else ''
+
+    if letra == 'A':
+        telefono_sucursal = "7544740046"
+    else:
+        # Serie B, C o cualquier otra
+        telefono_sucursal = "7544741035"
+
+    # ==========================================
     # CONEXIÓN DIRECTA CON MAKE.COM (WHATSAPP)
     # ==========================================
     datos_webhook = {
@@ -234,7 +246,8 @@ def procesar_salida():
         "vehiculo": unidad_nombre,
         "minutos_estimados": minutos_estimados,
         "estatus": nuevo_estatus_original,
-        "evidencias": ruta_foto_final
+        "evidencias": ruta_foto_final,
+        "telefono_sucursal": telefono_sucursal
     }
     
     try:
