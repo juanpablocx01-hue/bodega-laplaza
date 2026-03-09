@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -28,7 +29,8 @@
     </nav>
 
     <div class="container mt-4 mb-5">
-        <h3 class="mb-4 text-primary text-center">Despachar Viaje <span class="text-dark">#{{ pedido.num_viaje }}</span></h3>
+        <h3 class="mb-1 text-primary text-center">Despachar Viaje <span class="text-dark">#{{ pedido.num_viaje }}</span></h3>
+        <h5 class="mb-4 text-center text-muted">Cliente: <span class="fw-bold text-dark">{{ pedido.cliente_nombre }}</span></h5>
         
         <form action="{{ url_for('procesar_salida') }}" method="POST" enctype="multipart/form-data">
             <input type="hidden" name="num_viaje" value="{{ pedido.num_viaje }}">
