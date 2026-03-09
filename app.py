@@ -4,6 +4,7 @@ import mysql.connector
 from datetime import datetime, timedelta
 import cloudinary
 import cloudinary.uploader
+import requests 
 
 app = Flask(__name__)
 app.secret_key = "super_secreto_bodega"
@@ -14,7 +15,7 @@ app.permanent_session_lifetime = timedelta(days=30)
 # ==========================================
 # CONFIGURACIÓN DE SEGURIDAD (PIN MAESTRO)
 # ==========================================
-PIN_ACCESO = "2026" # <-- Aquí pones el NIP que tú quieras
+PIN_ACCESO = "2026" 
 
 # ==========================================
 # CONFIGURACIÓN DE CLOUDINARY (FOTOS EN LA NUBE)
@@ -45,10 +46,7 @@ def obtener_conexion():
 # ==========================================
 @app.before_request
 def verificar_login():
-    # Rutas que dejamos pasar sin pedir contraseña
     rutas_permitidas = ['login', 'static']
-    
-    # Si intentan entrar a cualquier otra parte y no están logeados, los mandamos al Login
     if request.endpoint not in rutas_permitidas and not session.get('logeado'):
         return redirect(url_for('login'))
 
@@ -146,7 +144,7 @@ def procesar_salida():
     conexion = obtener_conexion()
     
     cursor_lectura = conexion.cursor(dictionary=True)
-    cursor_lectura.execute("SELECT rem_productos, rem_productos_originales FROM tblEntregasResp2 WHERE num_viaje = %s", (num_viaje,))
+    cursor_lectura.execute("SELECT rem_productos, rem_productos_originales, cliente_nombre, cli_telefono FROM tblEntregasResp2 WHERE num_viaje = %s", (num_viaje,))
     viaje_original = cursor_lectura.fetchone()
     cursor_lectura.close()
 
@@ -224,7 +222,27 @@ def procesar_salida():
     conexion.commit()
     cursor.close()
     conexion.close()
+
+    # ==========================================
+    # CONEXIÓN DIRECTA CON MAKE.COM (WHATSAPP)
+    # ==========================================
+    datos_webhook = {
+        "num_viaje": num_viaje,
+        "cliente_nombre": viaje_original['cliente_nombre'],
+        "telefono_cliente": viaje_original['cli_telefono'],
+        "chofer": unidad_chofer,
+        "vehiculo": unidad_nombre,
+        "minutos_estimados": minutos_estimados,
+        "estatus": nuevo_estatus_original,
+        "evidencias": ruta_foto_final
+    }
     
+    try:
+        url_make = "https://hook.us2.make.com/yaoan84hqutqwghstajxz0ji4bm7gkkt"
+        requests.post(url_make, json=datos_webhook, timeout=5)
+    except Exception as e:
+        print(f"Error al comunicar con Make: {e}")
+
     return redirect(url_for('index'))
 
 if __name__ == '__main__':
