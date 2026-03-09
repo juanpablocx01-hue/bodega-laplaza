@@ -6,16 +6,26 @@
     <title>Control de Bodega Institutional</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        /* Ajuste para que el contenido no quede pegado a la barra de navegación */
         body { padding-top: 70px; }
         .navbar-brand img {
-            max-height: 40px; /* Ajusta el tamaño del logo */
+            max-height: 40px;
             width: auto;
+        }
+        .semaforo-verde {
+            border-top: 6px solid #28a745 !important;
+            border-left: 4px solid #0d6efd !important;
+        }
+        .semaforo-amarillo {
+            border-top: 6px solid #ffc107 !important;
+            border-left: 4px solid #0d6efd !important;
+        }
+        .semaforo-rojo {
+            border-top: 6px solid #dc3545 !important;
+            border-left: 4px solid #0d6efd !important;
         }
     </style>
 </head>
 <body class="bg-light">
-
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow fixed-top">
         <div class="container">
             <a class="navbar-brand d-flex align-items-center" href="{{ url_for('index') }}">
@@ -29,11 +39,23 @@
         <h2 class="mb-4 text-center text-secondary">Pedidos Pendientes de Despacho</h2>
         <div class="list-group">
             {% for pedido in pedidos %}
-            <a href="{{ url_for('detalle_pedido', num_viaje=pedido.num_viaje) }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center shadow-sm mb-2 rounded p-3 border-start border-primary border-4">
+
+            {% set ahora = now() %}
+            {% set minutos = ((ahora - pedido.rem_hora).total_seconds() / 60) | int %}
+
+            {% if minutos <= 39 %}
+                {% set clase_semaforo = 'semaforo-verde' %}
+            {% elif minutos <= 80 %}
+                {% set clase_semaforo = 'semaforo-amarillo' %}
+            {% else %}
+                {% set clase_semaforo = 'semaforo-rojo' %}
+            {% endif %}
+
+            <a href="{{ url_for('detalle_pedido', num_viaje=pedido.num_viaje) }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center shadow-sm mb-2 rounded p-3 border-start border-primary border-4 {{ clase_semaforo }}">
                 <div>
                     <h5 class="mb-1 text-primary">Viaje #{{ pedido.num_viaje }}</h5>
                     <p class="mb-1 text-dark">Remisión: <strong>{{ pedido.rem_serie }}{{ pedido.rem_num }}</strong></p>
-                    <small class="text-muted d-block">Cliente: {{ pedido.cliente_nombre }}</small>
+                    <small class="d-block fw-bold text-danger">Cliente: {{ pedido.cliente_nombre }}</small>
                     <small class="text-muted d-block">Unidad Actual: <strong>{{ pedido.unidad_nombre }}</strong></small>
                 </div>
                 {% if pedido.rem_estatus == 'PENDIENTE' %}
@@ -50,7 +72,6 @@
             {% endfor %}
         </div>
     </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.css"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
