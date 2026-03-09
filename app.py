@@ -239,15 +239,16 @@ def procesar_salida():
     # CONEXIÓN DIRECTA CON MAKE.COM (WHATSAPP)
     # ==========================================
     datos_webhook = {
-        "num_viaje": num_viaje,
-        "cliente_nombre": viaje_original['cliente_nombre'],
-        "telefono_cliente": viaje_original['cli_telefono'],
-        "chofer": unidad_chofer,
-        "vehiculo": unidad_nombre,
-        "minutos_estimados": minutos_estimados,
-        "estatus": nuevo_estatus_original,
-        "evidencias": ruta_foto_final,
-        "telefono_sucursal": telefono_sucursal
+    "num_viaje": num_viaje,
+    "cliente_nombre": viaje_original['cliente_nombre'],
+    "telefono_cliente": viaje_original['cli_telefono'],
+    "chofer": unidad_chofer,
+    "vehiculo": unidad_nombre,
+    "minutos_estimados": minutos_estimados,
+    "estatus": nuevo_estatus_original,
+    "evidencias": ruta_foto_final,
+    "telefono_sucursal": telefono_sucursal,
+    "hora_salida": ahora.strftime('%H:%M')
     }
     
     try:
@@ -260,3 +261,4 @@ def procesar_salida():
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
+
