@@ -2,6 +2,7 @@ import os
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 import mysql.connector
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 import cloudinary
 import cloudinary.uploader
 import requests 
@@ -136,8 +137,10 @@ def procesar_salida():
 
     ruta_foto_final = "|\n".join(urls_subidas) if urls_subidas else ""
 
-    ahora = datetime.now()
+    # Hora correcta en zona horaria de México
+    ahora = datetime.now(ZoneInfo("America/Mexico_City"))
     hora_salida_str = ahora.strftime('%H:%M:%S')
+    hora_salida_webhook = ahora.strftime('%H:%M')
     tiempo_regreso = ahora + timedelta(minutes=minutos_estimados)
     hora_regreso_str = tiempo_regreso.strftime('%H:%M:%S')
 
@@ -239,16 +242,16 @@ def procesar_salida():
     # CONEXIÓN DIRECTA CON MAKE.COM (WHATSAPP)
     # ==========================================
     datos_webhook = {
-    "num_viaje": num_viaje,
-    "cliente_nombre": viaje_original['cliente_nombre'],
-    "telefono_cliente": viaje_original['cli_telefono'],
-    "chofer": unidad_chofer,
-    "vehiculo": unidad_nombre,
-    "minutos_estimados": minutos_estimados,
-    "estatus": nuevo_estatus_original,
-    "evidencias": ruta_foto_final,
-    "telefono_sucursal": telefono_sucursal,
-    "hora_salida": ahora.strftime('%H:%M')
+        "num_viaje": num_viaje,
+        "cliente_nombre": viaje_original['cliente_nombre'],
+        "telefono_cliente": viaje_original['cli_telefono'],
+        "chofer": unidad_chofer,
+        "vehiculo": unidad_nombre,
+        "minutos_estimados": minutos_estimados,
+        "estatus": nuevo_estatus_original,
+        "evidencias": ruta_foto_final,
+        "telefono_sucursal": telefono_sucursal,
+        "hora_salida": hora_salida_webhook
     }
     
     try:
@@ -261,4 +264,3 @@ def procesar_salida():
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
-
