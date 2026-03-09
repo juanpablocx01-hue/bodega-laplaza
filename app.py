@@ -14,15 +14,6 @@ app.secret_key = "super_secreto_bodega"
 app.permanent_session_lifetime = timedelta(days=30)
 
 # ==========================================
-# FUNCIÓN now() DISPONIBLE EN LOS TEMPLATES
-# ==========================================
-@app.context_processor
-def utility_processor():
-    def now():
-        return datetime.now(ZoneInfo("America/Mexico_City")).replace(tzinfo=None)
-    return dict(now=now)
-
-# ==========================================
 # CONFIGURACIÓN DE SEGURIDAD (PIN MAESTRO)
 # ==========================================
 PIN_ACCESO = "2026" 
@@ -273,3 +264,4 @@ def procesar_salida():
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
+
