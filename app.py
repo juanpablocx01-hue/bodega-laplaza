@@ -233,10 +233,10 @@ def procesar_salida():
     letra = serie[0].upper() if serie else ''
 
     if letra == 'A':
-        telefono_sucursal = "754 47 4 0046"
+        telefono_sucursal = "7544740046"
     else:
         # Serie B, C o cualquier otra
-        telefono_sucursal = "754 47 4 10 35"
+        telefono_sucursal = "7544741035"
 
     # ==========================================
     # CONEXIÓN DIRECTA CON MAKE.COM (WHATSAPP)
@@ -264,4 +264,5 @@ def procesar_salida():
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
+
 
